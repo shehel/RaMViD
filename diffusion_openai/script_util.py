@@ -5,6 +5,8 @@ from . import gaussian_diffusion as gd
 from .respace import SpacedDiffusion, space_timesteps
 from .unet import SuperResModel, UNetModel
 
+import pdb
+
 NUM_CLASSES = 1000
 
 
@@ -122,7 +124,7 @@ def create_model(
     if rgb:
         channels = 3
     else:
-        channels = 1
+        channels = 4
 
     return UNetModel(
         in_channels=channels,

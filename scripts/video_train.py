@@ -19,9 +19,12 @@ from diffusion_openai.script_util import (
     add_dict_to_argparser,
 )
 from diffusion_openai.train_util import TrainLoop
+import pdb
 
+from clearml import Task
 def main():
 
+    task = Task.init(project_name="t4c_gen", task_name="ramvid")
     parser, defaults = create_argparser()
     args = parser.parse_args()
     parameters = args_to_dict(args, defaults.keys())
@@ -62,6 +65,7 @@ def main():
     logger.log("training...")
 
     TrainLoop(
+        task=task,
         model=model,
         diffusion=diffusion,
         data=data,
@@ -83,7 +87,7 @@ def main():
         drop=args.drop,
         decay=args.decay,
         max_num_mask_frames=args.max_num_mask_frames,
-        mask_range=mask_range, 
+        mask_range=mask_range,
         uncondition_rate=args.uncondition_rate,
         exclude_conditional=args.exclude_conditional,
     ).run_loop()

@@ -25,11 +25,11 @@ from .resample import LossAwareSampler, UniformSampler
 # 20-21 within the first ~1K steps of training.
 INITIAL_LOG_LOSS_SCALE = 20.0
 
-
 class TrainLoop:
     def __init__(
         self,
         *,
+        task,
         model,
         diffusion,
         data,
@@ -51,10 +51,11 @@ class TrainLoop:
         drop=None,
         decay=None,
         max_num_mask_frames=4,
-        mask_range=None, 
+        mask_range=None,
         uncondition_rate=True,
         exclude_conditional=True,
     ):
+        self.task = task
         self.model = model
         self.diffusion = diffusion
         self.data = data
@@ -250,7 +251,8 @@ class TrainLoop:
                 )
             loss = (losses["loss"] * weights).mean()
             log_loss_dict(
-                self.diffusion, t, {k: v * weights for k, v in losses.items()}
+                self.diffusion, t, {k: v * weights for k, v in losses.items()},
+                self.task, self.step
             )
             loss = loss / self.accumulation_steps
             if self.use_fp16:
@@ -389,10 +391,15 @@ def find_ema_checkpoint(main_checkpoint, step, rate):
     return None
 
 
-def log_loss_dict(diffusion, ts, losses):
+def log_loss_dict(diffusion, ts, losses, task, step):
+    tlogger = task.get_logger()
     for key, values in losses.items():
         logger.logkv_mean(key, values.mean().item())
         # Log the quantiles (four quartiles, in particular).
         for sub_t, sub_loss in zip(ts.cpu().numpy(), values.detach().cpu().numpy()):
             quartile = int(4 * sub_t / diffusion.num_timesteps)
+            tlogger.report_scalar(
+                    title=key, series=str(quartile), value=sub_loss,
+                iteration=step
+                )
             logger.logkv_mean(f"{key}_q{quartile}", sub_loss)
