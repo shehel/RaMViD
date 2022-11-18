@@ -48,6 +48,7 @@ def load_data(
     # if entry is empty
 
 
+    # TODO Fix the logic here as mp4 inside data will lead to .h5 branch not being executed
     if all_files == []:
         file_filter = "**/training/*8ch.h5"
         all_files = list(Path(data_dir).rglob(file_filter))
@@ -87,12 +88,12 @@ def load_data(
         )
     if deterministic:
         loader = DataLoader(
-            dataset, batch_size=batch_size, shuffle=False, num_workers=0, drop_last=True,
+            dataset, batch_size=batch_size, shuffle=True, num_workers=2, drop_last=True,
             collate_fn=collate_fn
         )
     else:
         loader = DataLoader(
-            dataset, batch_size=batch_size, shuffle=True, num_workers=0, drop_last=True,
+            dataset, batch_size=batch_size, shuffle=True, num_workers=2, drop_last=True,
             collate_fn=collate_fn
         )
     while True:
@@ -201,7 +202,7 @@ class T4C_dataset(Dataset):
         #input_data, output_data = prepare_test(two_hours)
         #input_data, output_data = two_hours[self.in_frames], two_hours[self.out_frames]
 
-        input_data = input_data[:,128:128+128,128:128+128, 0::2]
+        input_data = input_data[:,64:64+64,64:64+64, 1::2]
         #output_data = output_data[:,128:128+128, 128:128+128, 0::2]
         #input_data = input_data[:,:,:, self.ch_start:self.ch_end]
         #output_data = output_data[:,:,:,self.ch_start:self.ch_end]

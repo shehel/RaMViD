@@ -22,6 +22,7 @@ from diffusion_openai.script_util import (
     add_dict_to_argparser,
     args_to_dict,
 )
+import pdb
 
 
 def main():
@@ -73,7 +74,7 @@ def main():
     if args.rgb:
         channels = 3
     else:
-        channels = 1
+        channels = 4
 
     logger.log("sampling...")
     all_videos = []
@@ -82,7 +83,8 @@ def main():
         
         if args.cond_generation:
             video, _ = next(data)
-            cond_kwargs["cond_img"] = video[:,:,cond_frames].to(dist_util.dev()) 
+            np.savez(os.path.join(logger.get_dir(), "true.npz"), video.numpy())
+            cond_kwargs["cond_img"] = video[:,:,cond_frames].to(dist_util.dev())
             video = video.to(dist_util.dev())
 
 
@@ -117,6 +119,7 @@ def main():
             dist.all_gather(gathered_videos, video)  # gather not supported with NCCL
             all_gt.extend([video.cpu().numpy() for video in gathered_videos])
             logger.log(f"created {len(all_gt) * args.batch_size} videos")
+
 
 
     arr = np.concatenate(all_videos, axis=0)

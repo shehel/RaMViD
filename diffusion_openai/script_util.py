@@ -60,7 +60,7 @@ def create_model_and_diffusion(
     rescale_learned_sigmas,
     use_checkpoint,
     use_scale_shift_norm,
-    rgb=True
+    rgb=False
 ):
     model = create_model(
         image_size,
