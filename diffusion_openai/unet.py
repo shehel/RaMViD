@@ -6,6 +6,7 @@ import numpy as np
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
+import pdb
 
 from .fp16_util import convert_module_to_f16, convert_module_to_f32
 from .nn import (
@@ -318,7 +319,7 @@ class UNetModel(nn.Module):
         dropout=0,
         channel_mult=(1, 2, 4, 8),
         conv_resample=True,
-        dims=3,
+        dims=2,
         num_classes=None,
         use_checkpoint=False,
         num_heads=1,
@@ -364,6 +365,7 @@ class UNetModel(nn.Module):
         input_block_chans = [model_channels]
         ch = model_channels
         ds = 1
+        #pdb.set_trace()
         for level, mult in enumerate(channel_mult):
             for _ in range(num_res_blocks):
                 layers = [
@@ -378,12 +380,12 @@ class UNetModel(nn.Module):
                     )
                 ]
                 ch = mult * model_channels
-                if ds in attention_resolutions:
-                    layers.append(
-                        AttentionBlock(
-                            ch, use_checkpoint=use_checkpoint, num_heads=num_heads
-                        )
-                    )
+                # if ds in attention_resolutions:
+                #     layers.append(
+                #         AttentionBlock(
+                #             ch, use_checkpoint=use_checkpoint, num_heads=num_heads
+                #         )
+                #     )
                 self.input_blocks.append(TimestepEmbedSequential(*layers))
                 input_block_chans.append(ch)
             if level != len(channel_mult) - 1:
@@ -404,7 +406,7 @@ class UNetModel(nn.Module):
                 use_checkpoint=use_checkpoint,
                 use_scale_shift_norm=use_scale_shift_norm,
             ),
-            AttentionBlock(ch, use_checkpoint=use_checkpoint, num_heads=num_heads),
+            #AttentionBlock(ch, use_checkpoint=use_checkpoint, num_heads=num_heads),
             ResBlock(
                 ch,
                 time_embed_dim,
@@ -430,14 +432,14 @@ class UNetModel(nn.Module):
                     )
                 ]
                 ch = model_channels * mult
-                if ds in attention_resolutions:
-                    layers.append(
-                        AttentionBlock(
-                            ch,
-                            use_checkpoint=use_checkpoint,
-                            num_heads=num_heads_upsample,
-                        )
-                    )
+                # if ds in attention_resolutions:
+                #     layers.append(
+                #         AttentionBlock(
+                #             ch,
+                #             use_checkpoint=use_checkpoint,
+                #             num_heads=num_heads_upsample,
+                #         )
+                #     )
                 if level and i == num_res_blocks:
                     layers.append(Upsample(ch, conv_resample, dims=dims, seq_factor=self.time_reduction[level - 1]))
                     ds //= 2
@@ -493,13 +495,21 @@ class UNetModel(nn.Module):
             emb = emb + self.label_emb(y)
 
         h = x.type(self.inner_dtype)
+        #print (h.shape)
+        #print ("Input blocks")
         for module in self.input_blocks:
             h = module(h, emb)
             hs.append(h)
+            #print (h.shape)
+        #print ("Middle block")
         h = self.middle_block(h, emb)
+        #print (h.shape)
+        #print ("Output Blocks")
         for module in self.output_blocks:
             cat_in = th.cat([h, hs.pop()], dim=1)
             h = module(cat_in, emb)
+            #print (h.shape)
+        #pdb.set_trace()
         h = h.type(x.dtype)
         return self.out(h)
 

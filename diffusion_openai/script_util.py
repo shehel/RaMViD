@@ -77,6 +77,7 @@ def create_model_and_diffusion(
         dropout=dropout,
         rgb=rgb
     )
+    #pdb.set_trace()
     diffusion = create_gaussian_diffusion(
         steps=diffusion_steps,
         learn_sigma=learn_sigma,
@@ -109,7 +110,7 @@ def create_model(
     if image_size == 256:
         channel_mult = (1, 1, 2, 2, 4, 4)
     elif image_size == 128:
-        channel_mult = (1, 2, 3, 4)
+        channel_mult = (1, 2)
     elif image_size == 64:
         channel_mult = (1, 2, 3, 4)
     elif image_size == 32:
@@ -124,7 +125,7 @@ def create_model(
     if rgb:
         channels = 3
     else:
-        channels = 4
+        channels = 48
 
     return UNetModel(
         in_channels=channels,

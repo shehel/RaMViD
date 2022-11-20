@@ -107,7 +107,7 @@ def train_collate_fn(batch):
     dynamic_input_batch = torch.from_numpy(dynamic_input_batch).float()
     #target_batch = np.moveaxis(target_batch, source=4, destination=1)
     #target_batch = torch.from_numpy(target_batch).float()
-    # dynamic_input_batch = dynamic_input_batch.reshape(-1, 48, 128, 128)
+    dynamic_input_batch = dynamic_input_batch.reshape(-1, 48, 128, 128)
     #target_batch = target_batch.reshape(-1, channels, self.h, self.w)
 
     #target_batch = F.pad(target_batch, pad=self.pad_tuple)
@@ -202,7 +202,7 @@ class T4C_dataset(Dataset):
         #input_data, output_data = prepare_test(two_hours)
         #input_data, output_data = two_hours[self.in_frames], two_hours[self.out_frames]
 
-        input_data = input_data[:,64:64+64,64:64+64, 1::2]
+        input_data = input_data[:,128:128+128,128:128+128, 1::2]
         #output_data = output_data[:,128:128+128, 128:128+128, 0::2]
         #input_data = input_data[:,:,:, self.ch_start:self.ch_end]
         #output_data = output_data[:,:,:,self.ch_start:self.ch_end]
