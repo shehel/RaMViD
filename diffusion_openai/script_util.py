@@ -125,7 +125,7 @@ def create_model(
     if rgb:
         channels = 3
     else:
-        channels = 48
+        channels = 72
 
     return UNetModel(
         in_channels=channels,

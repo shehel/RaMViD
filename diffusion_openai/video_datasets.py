@@ -1,4 +1,4 @@
-from random import sample
+from random import randint, sample
 from PIL import Image, ImageSequence
 import blobfile as bf
 from mpi4py import MPI
@@ -88,12 +88,12 @@ def load_data(
         )
     if deterministic:
         loader = DataLoader(
-            dataset, batch_size=batch_size, shuffle=True, num_workers=2, drop_last=True,
+            dataset, batch_size=batch_size, shuffle=True, num_workers=0, drop_last=True,
             collate_fn=collate_fn
         )
     else:
         loader = DataLoader(
-            dataset, batch_size=batch_size, shuffle=True, num_workers=2, drop_last=True,
+            dataset, batch_size=batch_size, shuffle=True, num_workers=0, drop_last=True,
             collate_fn=collate_fn
         )
     while True:
@@ -107,7 +107,7 @@ def train_collate_fn(batch):
     dynamic_input_batch = torch.from_numpy(dynamic_input_batch).float()
     #target_batch = np.moveaxis(target_batch, source=4, destination=1)
     #target_batch = torch.from_numpy(target_batch).float()
-    dynamic_input_batch = dynamic_input_batch.reshape(-1, 48, 128, 128)
+    dynamic_input_batch = dynamic_input_batch.reshape(-1, 72, 128, 128)
     #target_batch = target_batch.reshape(-1, channels, self.h, self.w)
 
     #target_batch = F.pad(target_batch, pad=self.pad_tuple)
@@ -117,7 +117,6 @@ def train_collate_fn(batch):
 
     #target_batch = 2 * target_batch - 1
     #dynamic_input_batch = 2 * dynamic_input_batch - 1
-
 
     return dynamic_input_batch, {}
 
@@ -196,13 +195,20 @@ class T4C_dataset(Dataset):
 
         file_idx = idx // MAX_TEST_SLOT_INDEX
         start_hour = idx % MAX_TEST_SLOT_INDEX
-        input_data = self._load_h5_file(self.files[file_idx], sl=slice(start_hour, start_hour + self.seq_len))
+        end_hour = start_hour + int((self.seq_len)/4)
+        input_data = self._load_h5_file(self.files[file_idx], sl=slice(start_hour, end_hour))
+        #input_data = self._load_h5_file(self.files[file_idx], sl=slice(start_hour, start_hour + self.seq_len))
         #two_hours = self.files[file_idx][start_hour:start_hour+24]
 
         #input_data, output_data = prepare_test(two_hours)
         #input_data, output_data = two_hours[self.in_frames], two_hours[self.out_frames]
-
-        input_data = input_data[:,128:128+128,128:128+128, 1::2]
+        random_int_x = randint(0, 300)
+        random_int_y = randint(0, 300)
+        #input_data = input_data[:,:,:, 1::2] 
+        #save input_data numpy matrix to disk
+        #np.save('input_data.npy', input_data)
+        #input_data = input_data[:,128:128+128,128:128+128, 1::2]
+        input_data = input_data[:,random_int_x:random_int_x+128,random_int_y:random_int_y+128, 1::2]
         #output_data = output_data[:,128:128+128, 128:128+128, 0::2]
         #input_data = input_data[:,:,:, self.ch_start:self.ch_end]
         #output_data = output_data[:,:,:,self.ch_start:self.ch_end]

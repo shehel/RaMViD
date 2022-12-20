@@ -1,6 +1,7 @@
 import copy
 import functools
 import os
+import pdb
 
 import blobfile as bf
 import numpy as np
@@ -196,6 +197,10 @@ class TrainLoop:
             self.current_lr
         ):
             batch, cond = next(self.data)
+            # convert batch torch tensor to numpy and save to disk
+            #batch = batch.cpu().numpy()
+            #np.save('batch.npy', batch)
+            #pdb.set_trace()
             self.run_step(batch, cond)
             if self.step % self.log_interval == 0:
                 logger.dumpkvs()

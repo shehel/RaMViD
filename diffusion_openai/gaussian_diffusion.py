@@ -16,6 +16,7 @@ import os
 
 from .nn import mean_flat, sum_flat
 from .losses import normal_kl, discretized_gaussian_log_likelihood
+import pdb
 
 
 def get_named_beta_schedule(schedule_name, num_diffusion_timesteps):
@@ -486,7 +487,8 @@ class GaussianDiffusion:
 
             for r in range(resampling_steps):
                 if cond_frames:
-                    img[:,:,cond_frames] = cond_img
+                    img[:,cond_frames,:,:] = cond_img
+
                 with th.no_grad():
                     out = self.p_sample(
                         model,
@@ -825,6 +827,9 @@ class GaussianDiffusion:
             else:
                 r = random.randint(1, max_num_mask_frames)
                 mask = random.sample(range(*mask_range), r)
+
+            # Enabling 2D Unet by sampling timesteps and masking the specified ts in all directions
+            mask = [item for sublist in [[i + (j*18) for j in range(0, 4)] for i in mask] for item in sublist]
 
             masks[b, :, mask] = 0
 

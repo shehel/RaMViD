@@ -74,7 +74,7 @@ def main():
     if args.rgb:
         channels = 3
     else:
-        channels = 4
+        channels = 72
 
     logger.log("sampling...")
     all_videos = []
@@ -83,8 +83,8 @@ def main():
         
         if args.cond_generation:
             video, _ = next(data)
-            np.savez(os.path.join(logger.get_dir(), "true.npz"), video.numpy())
-            cond_kwargs["cond_img"] = video[:,:,cond_frames].to(dist_util.dev())
+            #np.savez(os.path.join(logger.get_dir(), "true.npz"), video.numpy())
+            cond_kwargs["cond_img"] = video[:,cond_frames].to(dist_util.dev())
             video = video.to(dist_util.dev())
 
 
@@ -92,16 +92,17 @@ def main():
             diffusion.p_sample_loop if not args.use_ddim else diffusion.ddim_sample_loop
         )
 
+        #pdb.set_trace()
         sample = sample_fn(
             model,
-            (args.batch_size, channels, args.seq_len, args.image_size, args.image_size),
+            (args.batch_size, args.seq_len, args.image_size, args.image_size),
             clip_denoised=args.clip_denoised,
             progress=False,
             cond_kwargs=cond_kwargs
         )
 
         sample = ((sample + 1) * 127.5).clamp(0, 255).to(th.uint8)
-        sample = sample.permute(0, 2, 3, 4, 1)
+        sample = sample.permute(0, 1, 2, 3)
         sample = sample.contiguous()
 
         gathered_samples = [th.zeros_like(sample) for _ in range(dist.get_world_size())]
@@ -112,14 +113,13 @@ def main():
         if args.cond_generation and args.save_gt:
 
             video = ((video + 1) * 127.5).clamp(0, 255).to(th.uint8)
-            video = video.permute(0, 2, 3, 4, 1)
+            video = video.permute(0, 1, 2, 3)
             video = video.contiguous()
 
             gathered_videos = [th.zeros_like(video) for _ in range(dist.get_world_size())]
             dist.all_gather(gathered_videos, video)  # gather not supported with NCCL
             all_gt.extend([video.cpu().numpy() for video in gathered_videos])
             logger.log(f"created {len(all_gt) * args.batch_size} videos")
-
 
 
     arr = np.concatenate(all_videos, axis=0)

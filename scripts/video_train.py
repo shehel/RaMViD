@@ -59,7 +59,8 @@ def main():
         seq_len=args.seq_len
     )
     if args.mask_range is None:
-        mask_range = [0, args.seq_len]
+        # TODO - this is a hack. Division by 4 to enable 2D Unet
+        mask_range = [0, int(args.seq_len/4)]
     else:
         mask_range = [int(i) for i in args.mask_range if i != ","]
     logger.log("training...")
