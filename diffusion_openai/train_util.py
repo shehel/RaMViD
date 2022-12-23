@@ -1,6 +1,7 @@
 import copy
 import functools
 import os
+import pdb
 
 import blobfile as bf
 import numpy as np
@@ -221,18 +222,20 @@ class TrainLoop:
 
     def forward_backward(self, batch, cond):
         zero_grad(self.model_params)
-        for i in range(0, batch.shape[0], self.microbatch):
-            micro = batch[i : i + self.microbatch].to(dist_util.dev())
+        for i in range(0, batch[0].shape[0], self.microbatch):
+            micro = batch[0][i : i + self.microbatch].to(dist_util.dev())
+            micro_mask = batch[1][i : i + self.microbatch].to(dist_util.dev())
             micro_cond = {
                 k: v[i : i + self.microbatch].to(dist_util.dev())
                 for k, v in cond.items()
             }
-            last_batch = (i + self.microbatch) >= batch.shape[0]
+            last_batch = (i + self.microbatch) >= batch[0].shape[0]
             t, weights = self.schedule_sampler.sample(micro.shape[0], dist_util.dev())
             compute_losses = functools.partial(
                 self.diffusion.training_losses,
                 self.ddp_model,
                 micro,
+                micro_mask,
                 t,
                 model_kwargs=micro_cond,
                 max_num_mask_frames=self.max_num_mask_frames,

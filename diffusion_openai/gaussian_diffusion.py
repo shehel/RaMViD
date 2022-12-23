@@ -7,6 +7,7 @@ Docstrings have been added, as well as DDIM sampling and a new collection of bet
 
 import enum
 import math
+import pdb
 import random
 
 import numpy as np
@@ -791,6 +792,7 @@ class GaussianDiffusion:
         self, 
         model, 
         x_start, 
+        mse_mask,
         t, 
         model_kwargs=None, 
         noise=None, 
@@ -868,6 +870,7 @@ class GaussianDiffusion:
             assert model_output.shape == target.shape == x_start.shape
             
             mse = (target - model_output) ** 2
+            mse = mse*mse_mask
             if exclude_conditional: 
                 mse *= masks
                 terms["mse"] = sum_flat(mse) / sum_flat(masks)
