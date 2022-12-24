@@ -50,7 +50,7 @@ def load_data(
 
     # TODO Fix the logic here as mp4 inside data will lead to .h5 branch not being executed
     if all_files == []:
-        file_filter = "**/training/*8ch.h5"
+        file_filter = "**/validation/*8ch.h5"
         all_files = list(Path(data_dir).rglob(file_filter))
         all_files.sort()
 
@@ -88,12 +88,12 @@ def load_data(
         )
     if deterministic:
         loader = DataLoader(
-            dataset, batch_size=batch_size, shuffle=True, num_workers=2, drop_last=True,
+            dataset, batch_size=batch_size, shuffle=True, num_workers=0, drop_last=True,
             collate_fn=collate_fn
         )
     else:
         loader = DataLoader(
-            dataset, batch_size=batch_size, shuffle=True, num_workers=2, drop_last=True,
+            dataset, batch_size=batch_size, shuffle=True, num_workers=0, drop_last=True,
             collate_fn=collate_fn
         )
     while True:
@@ -107,6 +107,7 @@ def train_collate_fn(batch):
     dynamic_input_batch = torch.from_numpy(dynamic_input_batch).float()
     #target_batch = np.moveaxis(target_batch, source=4, destination=1)
     #target_batch = torch.from_numpy(target_batch).float()
+    
     dynamic_input_batch = dynamic_input_batch.reshape(-1, 72, 128, 128)
     #target_batch = target_batch.reshape(-1, channels, self.h, self.w)
 

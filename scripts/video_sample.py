@@ -64,6 +64,7 @@ def main():
                 num = ""
             else:
                 num = num + i
+        cond_frames = [item for sublist in [[i + (j*18) for j in range(0, 4)] for i in cond_frames] for item in sublist]
         ref_frames = list(i for i in range(args.seq_len) if i not in cond_frames)
         logger.log(f"cond_frames: {cond_frames}")
         logger.log(f"ref_frames: {ref_frames}")
