@@ -20,6 +20,9 @@ from .fp16_util import (
 )
 from .nn import update_ema
 from .resample import LossAwareSampler, UniformSampler
+from .runet import UNet
+
+from clearml import Task
 
 # For ImageNet experiments, this was a good default value.
 # We found that the lg_loss_scale quickly climbed to
@@ -143,6 +146,16 @@ class TrainLoop:
             self.use_ddp = False
             self.ddp_model = self.model
 
+        #define and load unet model
+        self.unet = UNet(24, 24, 2, 6, batch_norm=True)
+        r_task = Task.get_task(task_id="e25c22b575244c998bdafa8e22cff200")
+        model_path = r_task.artifacts['model_checkpoint'].get_local_copy()
+        model_state_dict = th.load(model_path+'/'+ os.listdir(model_path)[0])#,map_location=torch.device('cpu'))
+        #self.unet = self.unet.to('cuda')
+        self.unet.load_state_dict(model_state_dict['train_model'], strict=False)
+        self.unet.eval()
+
+
     def _load_and_sync_parameters(self):
         resume_checkpoint = find_resume_checkpoint() or self.resume_checkpoint
 
@@ -197,6 +210,27 @@ class TrainLoop:
             self.current_lr
         ):
             batch, cond = next(self.data)
+            # Move axis 2 to axis 1 for batch[0]
+            batch[0] = th.transpose(batch[0], 1, 2)
+            # Divide batch[0] into 3 tensors of 6 channels each at axis 2
+            batch[0] = th.split(batch[0], 6, dim=1)
+
+
+            # Reshape each tensor in batch[0] tuple to 48 channels each at axis 1
+            batch[0] = tuple([th.reshape(x, (x.shape[0], 24, x.shape[3], x.shape[4])) for x in batch[0]])
+            inp = self.unet([batch[0][0], []])
+            outp = self.unet([batch[0][1], []])
+
+            inp = batch[0][1] - inp
+            outp = batch[0][2] - outp
+            # stack inp and outp
+            batch[0] = th.cat((inp, outp), dim=1)
+            # Reshape batch[0] to 12 timesteps and 4 channels at axis 1 and 2 respectively
+            batch[0] = th.reshape(batch[0], (batch[0].shape[0], 12, 4, batch[0].shape[2], batch[0].shape[3]))
+            # Move axsis 1 to axis 2
+            batch[0] = th.transpose(batch[0], 1, 2)
+
+            batch[0] = 2*((batch[0]) / ( 255.0)) - 1
             self.run_step(batch, cond)
             if self.step % self.log_interval == 0:
                 logger.dumpkvs()

@@ -1,3 +1,4 @@
+import random
 from random import randint, sample
 from PIL import Image, ImageSequence
 import blobfile as bf
@@ -7,6 +8,7 @@ from torch.utils.data import DataLoader, Dataset
 import torch
 import av
 import pdb
+import os
 from typing import Any
 from typing import Callable
 from typing import Optional
@@ -14,7 +16,6 @@ from typing import Tuple
 from typing import Union
 import h5py
 from pathlib import Path
-
 
 def load_data(
     *, data_dir, batch_size, image_size, class_cond=False, deterministic=False, rgb=True, seq_len=20
@@ -46,7 +47,7 @@ def load_data(
         sorted_classes = {x: i for i, x in enumerate(sorted(set(class_names)))}
         classes = [sorted_classes[x] for x in class_names]
     # if entry is empty
-
+    
 
     # TODO Fix the logic here as mp4 inside data will lead to .h5 branch not being executed
     if all_files == []:
@@ -177,6 +178,8 @@ class T4C_dataset(Dataset):
         self.seq_len = seq_len
 
         self.len = len(self.files)*MAX_TEST_SLOT_INDEX
+
+        
         #self._load_dataset()
 
     def _load_dataset(self):
@@ -200,7 +203,7 @@ class T4C_dataset(Dataset):
         file_idx = idx // MAX_TEST_SLOT_INDEX
         start_hour = idx % MAX_TEST_SLOT_INDEX
         #end_hour = start_hour + int((self.seq_len)/4)
-        input_data = self._load_h5_file(self.files[file_idx], sl=slice(start_hour, start_hour+self.seq_len))
+        input_data = self._load_h5_file(self.files[file_idx], sl=slice(start_hour, start_hour+self.seq_len+int(self.seq_len/2)))
 
         #two_hours = self.files[file_idx][start_hour:start_hour+24]
 
@@ -208,6 +211,7 @@ class T4C_dataset(Dataset):
         #input_data, output_data = two_hours[self.in_frames], two_hours[self.out_frames]
         random_int_x = randint(0, 300)
         random_int_y = randint(0, 300)
+
 
         input_data = input_data[:,random_int_x:random_int_x+128,random_int_y:random_int_y+128, 1::2]
 
@@ -217,10 +221,14 @@ class T4C_dataset(Dataset):
         #output_data = output_data[:,128:128+128, 128:128+128, 0::2]
         #input_data = input_data[:,:,:, self.ch_start:self.ch_end]
         #output_data = output_data[:,:,:,self.ch_start:self.ch_end]
+        
+        # move axis and reshape input data of shape (12, 128, 128, 4) to (48, 128, 128)
+        
+        #input_data = np.moveaxis(input_data, 3, 1)
+        #input_data = np.reshape(input_data, (48, 128, 128))
         input_data = 2*((input_data) / ( 255.0)) - 1
 
-
-        return input_data, static_mask
+        return input_data, static_mask 
 
 
 def _list_video_files_recursively(data_dir):
